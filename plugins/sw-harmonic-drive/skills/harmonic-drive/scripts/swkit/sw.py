@@ -48,7 +48,11 @@ def connect():
 def flag_methods(obj, *names):
     """Tell late-bound pywin32 these members are methods, not properties."""
     if hasattr(obj, "_FlagAsMethod"):
-        obj._FlagAsMethod(*names)
+        for n in names:
+            try:
+                obj._FlagAsMethod(n)
+            except Exception:       # not a member of this interface
+                pass
 
 
 def call0(obj, name):
@@ -111,16 +115,36 @@ class SolidWorks:
         data[9], data[10], data[11] = x_mm * MM, y_mm * MM, z_mm * MM
         return self.math.CreateTransform(_arr(data))
 
-    def import_mesh(self, path: str):
-        """Open an STL as a new part. Body type (graphics/solid/surface) follows
-        Tools > Options > Import > STL/OBJ/OFF/PLY."""
-        errs = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
-        data = None
+    def import_mesh(self, path: str, body: str | None = None, units_mm: bool = True):
+        """Open an STL as a new part.
+
+        body: "graphics" | "surface" | "solid" sets Tools > Options > Import > STL/OBJ/OFF/PLY
+        "Import as" for this import only (None keeps the user's setting). units_mm reads
+        the file in millimetres. Both preferences are restored afterwards."""
+        # swUserPreferenceIntegerValue_e / swImportStlVrmlModelType_e / swLengthUnit_e (swconst.tlb, SW 2025)
+        PREF_MODEL_TYPE, PREF_UNITS = 208, 210
+        types = {"graphics": 0, "surface": 1, "solid": 2}
+        flag_methods(self.app, "GetUserPreferenceIntegerValue", "SetUserPreferenceIntegerValue")
+        saved = {}
+        wanted = {}
+        if body is not None:
+            wanted[PREF_MODEL_TYPE] = types[body]
+        if units_mm:
+            wanted[PREF_UNITS] = 0                       # swMM
+        for pref, val in wanted.items():
+            saved[pref] = self.app.GetUserPreferenceIntegerValue(pref)
+            self.app.SetUserPreferenceIntegerValue(pref, val)
         try:
-            data = self.app.GetImportFileData(str(path))
-        except Exception:
-            pass
-        doc = self.app.LoadFile4(str(path), "r", data if data is not None else _nothing(), errs)
+            errs = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
+            data = None
+            try:
+                data = self.app.GetImportFileData(str(path))
+            except Exception:
+                pass
+            doc = self.app.LoadFile4(str(path), "r", data if data is not None else _nothing(), errs)
+        finally:
+            for pref, val in saved.items():
+                self.app.SetUserPreferenceIntegerValue(pref, val)
         if doc is None:
             raise SolidWorksError(f"LoadFile4 failed for {path} (error {errs.value}); open it via File > Open instead")
         return doc

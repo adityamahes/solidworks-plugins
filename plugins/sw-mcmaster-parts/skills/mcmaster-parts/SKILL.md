@@ -13,11 +13,16 @@ Uses the **mcmaster** MCP server (tools `mcp__mcmaster__*`) for search, and
 - Windows Python; `pywin32` and SolidWorks for `--open` / `--insert`. Find the interpreter as in the gyroid-lattice skill.
 
 ## Workflow
-1. **Find the part.**
-   - Full spec given ("M3 x 10 socket head cap screw, black oxide"): `mcmaster_find_exact_part`
-     with the description. It returns one part only when the specs pin it down.
-   - Looser request: `mcmaster_find_parts` (or `mcmaster_search`), then `mcmaster_extract_schema`
-     to see the family's filters and columns and narrow it down with the user.
+1. **Find the part.** (Tested 2026-11-06; see notes.)
+   - Use `mcmaster_open` with a spec-rich search phrase ("6805 ball bearing 25 mm shaft diameter 37 mm
+     housing"). It returns the matching table rows with their attributes. That search found both 6805
+     bearings (5972K216, 2349K731) on the first try.
+   - Then `mcmaster_open` the chosen part number and check the page `title` describes the part. A bad
+     part number still returns a page, with "No results for" in `text_preview` and `not_found: false`.
+     Treat that text as not found.
+   - Avoid `mcmaster_find_exact_part`: it fails with "An OpenAI API key is required". Don't trust the
+     `products` ranking of `mcmaster_find_parts` either. For "M3 x 10 socket head screw" it reached the
+     right page (91290A115, in `pages_visited`) but listed inch screws as its results.
    - Gearbox hardware: turn the design report into specs. For example, a bearing "6805 (25x37x7)" becomes
      "6805 ball bearing 25 mm ID 37 mm OD 7 mm wide", and a 5 mm output pin becomes "5 mm dowel pin, length ≥ stack height".
 2. **Confirm with the user** before downloading: part number, description, quantity, and file type. Downloading is the user's call.
