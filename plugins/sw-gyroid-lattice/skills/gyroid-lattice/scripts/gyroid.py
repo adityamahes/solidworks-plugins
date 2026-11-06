@@ -237,6 +237,50 @@ def orient_outward(verts, faces, F, h, origin):
     return faces
 
 
+def drop_fragments(verts, faces, keep_frac=0.01):
+    """Remove floating pieces (e.g. wall slivers cut off at the shape boundary).
+
+    Each closed shell has a signed volume: positive = an outer surface (a body),
+    negative = the wall of a sealed void inside a body. Only small OUTER shells are
+    dropped; void walls are always kept or the solid would become invalid.
+    Returns verts, faces, dropped_count, bodies, sealed_voids."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    nv = len(verts)
+    e = np.concatenate([faces[:, [0, 1]], faces[:, [1, 2]]])
+    n, lab = connected_components(coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(nv, nv)), directed=False)
+    tri_lab = lab[faces[:, 0]]
+    a, b, c = verts[faces[:, 0]], verts[faces[:, 1]], verts[faces[:, 2]]
+    vol = np.bincount(tri_lab, weights=np.einsum("ij,ij->i", a, np.cross(b, c)) / 6, minlength=n)
+    outer = vol > 0
+    tris = np.bincount(tri_lab, minlength=n)
+    # Real sealed voids in a TPMS are whole labyrinths (huge); anything tiny is a clipping
+    # scrap, e.g. where a wall grazes a corner or the shape's surface, whichever way it faces.
+    keep = tris >= keep_frac * tris.max()
+    faces = faces[keep[tri_lab]]
+    used = np.unique(faces)
+    remap = -np.ones(nv, dtype=np.int64)
+    remap[used] = np.arange(len(used))
+    return (verts[used], remap[faces], int((~keep).sum()),
+            int((outer & keep).sum()), int((~outer & keep).sum()))
+
+
+def taubin_smooth(verts, faces, iters=10, lam=0.5, mu=-0.53):
+    """Taubin lambda/mu smoothing: removes voxel stair-steps without shrinking the walls."""
+    from scipy.sparse import coo_matrix, diags
+    nv = len(verts)
+    e = np.concatenate([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]])
+    e = np.unique(np.sort(e, 1), axis=0)
+    A = coo_matrix((np.ones(2 * len(e)), (np.r_[e[:, 0], e[:, 1]], np.r_[e[:, 1], e[:, 0]])), shape=(nv, nv)).tocsr()
+    Dinv = diags(1.0 / np.maximum(np.asarray(A.sum(1)).ravel(), 1))
+    W = Dinv @ A
+    v = verts.copy()
+    for _ in range(iters):
+        v = v + lam * (W @ v - v)
+        v = v + mu * (W @ v - v)
+    return v
+
+
 def write_stl(path, verts, faces):
     tri = verts[faces].astype(np.float32)
     n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
@@ -278,7 +322,13 @@ def main(argv=None):
     ap.add_argument("--domain-stl", help="fill this closed STL body instead of a primitive shape (mm)")
     ap.add_argument("--from-solidworks", action="store_true", help="export & fill the active SolidWorks part")
     ap.add_argument("--shell", type=float, default=0.0, help="solid outer skin thickness, mm (0 = open lattice)")
-    ap.add_argument("--res", type=int, default=14, help="voxels per unit cell (12-20 typical)")
+    ap.add_argument("--res", type=int, default=14,
+                    help="voxels per unit cell; raised automatically so every wall is >= --min-wall-voxels thick")
+    ap.add_argument("--min-wall-voxels", type=float, default=3.0, help="minimum voxels across a sheet wall")
+    ap.add_argument("--smooth", type=int, default=10, help="Taubin smoothing passes (0 = raw voxel mesh)")
+    ap.add_argument("--keep-fragments", action="store_true", help="keep floating pieces cut off at the boundary")
+    ap.add_argument("--sw-body", default="graphics", choices=["graphics", "solid", "surface"],
+                    help="SolidWorks import type: graphics (fast, any size), solid (mesh BREP, <~100k tris)")
     ap.add_argument("--material-density", type=float, default=1.24, help="g/cm^3 for mass estimate (PLA 1.24)")
     ap.add_argument("--out", default="gyroid_out")
     ap.add_argument("--name", default="gyroid_lattice")
@@ -291,8 +341,35 @@ def main(argv=None):
     if a.wall is None and a.density is None:
         a.density = 0.2
 
+    # --- lattice parameter first: it decides the grid resolution ----------
+    p0 = a.wall if a.wall is not None else solve_param(a.type, a.style, a.cell, a.density)
+    p1 = p0
+    if a.wall_end is not None:
+        p1 = a.wall_end
+    elif a.density_end is not None:
+        p1 = solve_param(a.type, a.style, a.cell, a.density_end)
+    res = a.res
+    if a.style == "sheet":
+        res = max(res, int(math.ceil(a.min_wall_voxels * a.cell / min(p0, p1))))
+
     # --- domain grid ------------------------------------------------------
-    h = a.cell / a.res
+    if a.domain_stl or a.from_solidworks:
+        extent = None
+    else:
+        sz = list(a.size)
+        if a.shape == "sphere":
+            sz = [sz[0]] * 3
+        if a.shape == "cylinder":
+            sz[1] = sz[0]
+        extent = np.array(sz) + 2 * a.shell + 4 * a.cell / res
+        max_res = int(a.cell * (400 ** 3 / np.prod(extent)) ** (1 / 3))
+        if res > max_res:
+            print(f"WARNING: walls need {res} voxels/cell but the grid is capped at {max_res}; "
+                  f"walls will be ~{a.min_wall_voxels * max_res / res:.1f} voxels thick. Use a thicker wall or smaller part.")
+            res = max_res
+    if res != a.res:
+        print(f"resolution raised from {a.res} to {res} voxels/cell so walls are >= {a.min_wall_voxels:g} voxels")
+    h = a.cell / res
     pad = 2 * h + a.shell
     sw_box = None
     if a.from_solidworks:
@@ -331,12 +408,6 @@ def main(argv=None):
         D = {"box": sdf_box, "cylinder": sdf_cylinder, "sphere": sdf_sphere}[a.shape](X, Y, Z, size)
 
     # --- lattice parameter (possibly graded) ------------------------------
-    p0 = a.wall if a.wall is not None else solve_param(a.type, a.style, a.cell, a.density)
-    p1 = p0
-    if a.wall_end is not None:
-        p1 = a.wall_end
-    elif a.density_end is not None:
-        p1 = solve_param(a.type, a.style, a.cell, a.density_end)
     if p1 != p0:
         ax = {"x": X, "y": Y, "z": Z}[a.grade_axis]
         i = "xyz".index(a.grade_axis)
@@ -344,8 +415,6 @@ def main(argv=None):
         param = p0 + (p1 - p0) * u
     else:
         param = p0
-    if a.style == "sheet" and min(p0, p1) < 2 * h:
-        print(f"WARNING: wall {min(p0, p1):.2f} mm is under 2 voxels ({2 * h:.2f} mm); raise --res for a clean mesh")
 
     L = lattice_sdf(a.type, a.style, X, Y, Z, a.cell, param)
     F = np.maximum(L, D)
@@ -355,6 +424,13 @@ def main(argv=None):
 
     verts, faces = extract(F, h, lo + jitter)
     faces = orient_outward(verts, faces, F, h, lo + jitter)
+    dropped = 0
+    if not a.keep_fragments:
+        verts, faces, dropped, bodies, voids = drop_fragments(verts, faces)
+    else:
+        _, _, _, bodies, voids = drop_fragments(verts, faces, keep_frac=0.0)
+    if a.smooth > 0:
+        verts = taubin_smooth(verts, faces, a.smooth)
     area, vol, bad_edges = mesh_stats(verts, faces)
     domain_vol = float(np.count_nonzero(D <= 0)) * h ** 3
     stl = out / f"{a.name}.stl"
@@ -374,9 +450,14 @@ def main(argv=None):
         "surface_area_mm2": round(area, 1),
         "triangles": int(len(faces)),
         "non_manifold_edges": bad_edges,
+        "voxels_per_cell": res, "voxel_mm": round(h, 4),
+        "bodies": bodies, "sealed_voids": voids, "fragments_dropped": dropped,
         "stl": str(stl.resolve()),
         "seconds": round(time.time() - t_start, 1),
     }
+    if voids:
+        report["warning_sealed_voids"] = (f"{voids} internal void(s) are fully enclosed by the skin. Powder/resin "
+                                          "printing cannot drain them: add drain holes, or use --shell 0.")
     if len(faces) > 300_000:
         report["note"] = ("Large mesh: import into SolidWorks as a Graphics body, or raise --cell / lower --res. "
                           "For printing, send the STL straight to the slicer.")
@@ -385,8 +466,11 @@ def main(argv=None):
 
     if a.solidworks:
         from swkit.sw import SolidWorks
-        SolidWorks().import_mesh(str(stl.resolve()))
-        print("imported into SolidWorks")
+        from swkit.sw import call0
+        doc = SolidWorks().import_mesh(str(stl.resolve()), body=a.sw_body)
+        call0(doc, "ViewDisplayShaded")          # "Shaded with Edges" draws every triangle black
+        call0(doc, "ViewZoomtofit2")
+        print(f"imported into SolidWorks as a {a.sw_body} body")
 
 
 if __name__ == "__main__":
