@@ -1,0 +1,82 @@
+{
+  "name": "solidworks-plugins",
+  "owner": {
+    "name": "Aditya Mahes"
+  },
+  "metadata": {
+    "description": "Claude Code plugins that design and build hard-to-model mechanical parts in SolidWorks.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "sw-gyroid-lattice",
+      "source": "./plugins/sw-gyroid-lattice",
+      "description": "Gyroid / TPMS lattices for SolidWorks: fill any body at a target wall or density, graded, with skin; watertight STL import.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "gyroid",
+        "tpms",
+        "lattice",
+        "3d-printing"
+      ]
+    },
+    {
+      "name": "sw-planetary-gearbox",
+      "source": "./plugins/sw-planetary-gearbox",
+      "description": "Planetary gearbox designer for SolidWorks: tooth-count search, involute profiles, interference check, phased assembly.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "gearbox",
+        "planetary",
+        "involute",
+        "actuator"
+      ]
+    },
+    {
+      "name": "sw-cycloidal-drive",
+      "source": "./plugins/sw-cycloidal-drive",
+      "description": "Cycloidal drive designer for SolidWorks: exact disk profile, undercut and pin-contact checks, bearings, full part set.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "cycloidal",
+        "reducer",
+        "actuator",
+        "robotics"
+      ]
+    },
+    {
+      "name": "sw-harmonic-drive",
+      "source": "./plugins/sw-harmonic-drive",
+      "description": "Harmonic / strain wave drive designer for SolidWorks: flexspline, circular spline, wave generator, deformed-mesh check.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "harmonic-drive",
+        "strain-wave",
+        "actuator",
+        "robotics"
+      ]
+    },
+    {
+      "name": "sw-mcmaster-parts",
+      "source": "./plugins/sw-mcmaster-parts",
+      "description": "McMaster-Carr CAD for SolidWorks via the McMaster MCP: find hardware, pull SLDPRT/STEP, insert into the active assembly.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "mcmaster",
+        "cad",
+        "hardware",
+        "bom"
+      ]
+    }
+  ]
+}

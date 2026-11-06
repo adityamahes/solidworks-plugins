@@ -1,0 +1,17 @@
+{
+  "name": "sw-planetary-gearbox",
+  "version": "0.1.0",
+  "description": "Planetary gearbox designer for SolidWorks: tooth-count search, involute profiles, interference check, phased assembly.",
+  "author": {
+    "name": "Aditya Mahes"
+  },
+  "repository": "https://github.com/adityamahes/solidworks-plugins",
+  "license": "MIT",
+  "keywords": [
+    "solidworks",
+    "gearbox",
+    "planetary",
+    "involute",
+    "actuator"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "sw-mcmaster-parts",
+  "version": "0.1.0",
+  "description": "McMaster-Carr CAD for SolidWorks via the McMaster MCP: find hardware, pull SLDPRT/STEP, insert into the active assembly.",
+  "author": {
+    "name": "Aditya Mahes"
+  },
+  "repository": "https://github.com/adityamahes/solidworks-plugins",
+  "license": "MIT",
+  "keywords": [
+    "solidworks",
+    "mcmaster",
+    "cad",
+    "hardware",
+    "bom"
+  ]
+}

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*_out/
+out/
+~$*
+*.SLDPRT
+*.SLDASM
+*.stl
+!examples/**
