@@ -1,12 +1,15 @@
 # SolidWorks plugins for Claude Code
 
-Five Claude Code plugins for parts that are hard to model by hand in SolidWorks. Each plugin pairs a
+Eight Claude Code plugins for parts that are hard to model by hand in SolidWorks. Each plugin pairs a
 skill (how Claude should run the job) with a Python generator that does the math and checks the design,
 then drives SolidWorks over COM to build real parts and assemblies.
 
 | Plugin | What it builds | Checks it runs |
 |---|---|---|
-| `sw-gyroid-lattice` | Gyroid / diamond / Schwarz-P lattices in a box, cylinder, sphere, any STL, or the open SolidWorks part. Sheet or network style, graded walls, solid skin. | Watertight mesh (0 non-manifold edges), density solved to target, mass |
+| `sw-gyroid-lattice` | Gyroid lattices in a box, cylinder, sphere, any STL, or the open SolidWorks part: a smooth native SolidWorks part, or a fast mesh. Sheet or network style, graded walls, solid skin. | Native: within 2% of the exact volume. Mesh: watertight, 1 body, density solved to target |
+| `sw-diamond-lattice` | Schwarz Diamond lattices, the stiffest per weight. Same shapes and options as the gyroid mesh builder | Watertight mesh, density solved to target, sealed-void warning |
+| `sw-primitive-lattice` | Schwarz Primitive lattices: big straight channels, the easiest to clean and drain | Watertight mesh, density solved to target, sealed-void warning |
+| `sw-iwp-lattice` | Schoen I-WP lattices: high stiffness and surface area, good for energy absorption | Watertight mesh, density solved to target, sealed-void warning |
 | `sw-planetary-gearbox` | Sun, planets, ring and carrier with involute teeth, plus an assembly with every planet phased to mesh | Tooth-count search (assembly, neighbour, undercut rules), 2D mesh interference |
 | `sw-cycloidal-drive` | Two out-of-phase cycloid disks, pin housing, ring pins, output flange and pins, eccentric shaft, assembly | Profile self-intersection (undercut), every pin seated at the set clearance |
 | `sw-harmonic-drive` | Cup flexspline, circular spline, elliptical or twin-roller wave generator, assembly | Simulated deformed-flexspline mesh with automatic tooth-height tuning, rim strain |
@@ -21,6 +24,9 @@ torque, how it will be made) and **whether you want McMaster-Carr hardware**. Ea
 ```bash
 claude plugin marketplace add adityamahes/solidworks-plugins
 claude plugin install sw-gyroid-lattice@solidworks-plugins
+claude plugin install sw-diamond-lattice@solidworks-plugins
+claude plugin install sw-primitive-lattice@solidworks-plugins
+claude plugin install sw-iwp-lattice@solidworks-plugins
 claude plugin install sw-planetary-gearbox@solidworks-plugins
 claude plugin install sw-cycloidal-drive@solidworks-plugins
 claude plugin install sw-harmonic-drive@solidworks-plugins
