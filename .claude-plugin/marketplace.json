@@ -23,6 +23,48 @@
       ]
     },
     {
+      "name": "sw-diamond-lattice",
+      "source": "./plugins/sw-diamond-lattice",
+      "description": "Schwarz Diamond (D) TPMS lattices for SolidWorks: fill any body at a target wall or density, graded, with skin; watertight STL import.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "tpms",
+        "lattice",
+        "diamond",
+        "3d-printing"
+      ]
+    },
+    {
+      "name": "sw-primitive-lattice",
+      "source": "./plugins/sw-primitive-lattice",
+      "description": "Schwarz Primitive (P) TPMS lattices for SolidWorks: fill any body at a target wall or density, graded, with skin; watertight STL import.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "tpms",
+        "lattice",
+        "primitive",
+        "3d-printing"
+      ]
+    },
+    {
+      "name": "sw-iwp-lattice",
+      "source": "./plugins/sw-iwp-lattice",
+      "description": "Schoen I-WP TPMS lattices for SolidWorks: fill any body at a target wall or density, graded, with skin; watertight STL import.",
+      "version": "0.1.0",
+      "category": "engineering",
+      "keywords": [
+        "solidworks",
+        "tpms",
+        "lattice",
+        "iwp",
+        "3d-printing"
+      ]
+    },
+    {
       "name": "sw-planetary-gearbox",
       "source": "./plugins/sw-planetary-gearbox",
       "description": "Planetary gearbox designer for SolidWorks: tooth-count search, involute profiles, interference check, phased assembly.",

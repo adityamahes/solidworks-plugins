@@ -1,0 +1,17 @@
+{
+  "name": "sw-primitive-lattice",
+  "version": "0.1.0",
+  "description": "Schwarz Primitive (P) TPMS lattices for SolidWorks: fill any body at a target wall or density, graded, with skin; watertight STL import.",
+  "author": {
+    "name": "Aditya Mahes"
+  },
+  "repository": "https://github.com/adityamahes/solidworks-plugins",
+  "license": "MIT",
+  "keywords": [
+    "solidworks",
+    "tpms",
+    "lattice",
+    "primitive",
+    "3d-printing"
+  ]
+}
